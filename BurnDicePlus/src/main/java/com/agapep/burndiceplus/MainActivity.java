@@ -120,14 +120,7 @@ public class MainActivity extends Activity {
                 handler.removeCallbacks(gameLoop);
 
                 playing = false;
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ++points;
-                        PointsBox.setAlpha(0.3f);
-                    }
-                });
+                updatePoints();
             }
         }
     };
@@ -223,7 +216,7 @@ public class MainActivity extends Activity {
                     burned = burned ^ data.change_mask;
 
                     ++points;
-                    PointsText.setText("" + points);
+                    updatePoints();
                 }
             });
         }
@@ -337,8 +330,9 @@ public class MainActivity extends Activity {
     public void startGame(View v) {
         Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
 
-        PointsBox.setAlpha(1.0f);
         playing = true;
+        points = 0;
+        updatePoints();
 
         time = 0;
         reds.clear();
@@ -387,5 +381,15 @@ public class MainActivity extends Activity {
 //            return wall | ( 1 << random.nextInt(count));
         }
         return wall;
+    }
+
+    void updatePoints() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                PointsText.setText("" + points);
+                PointsBox.setAlpha(playing ? 1.0f : 0.3f);
+            }
+        });
     }
 }
