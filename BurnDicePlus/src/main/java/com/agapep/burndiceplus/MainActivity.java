@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     private static final String TAG = "DICEPlus";
     private SharedPreferences sp;
     private SharedPreferences.Editor spe;
-    private String preferedDice;
+    private String preferedDice = "88:78:9C:0F:CA:8A";
     private Handler handler;
     private final int gameTime = 60000;
     private int accelerate = 1;
@@ -93,13 +93,19 @@ public class MainActivity extends Activity {
             time += loopTime;  //ustalanie nowego czasu
             int r_index = r.nextInt(greens.size());
             reds.add(greens.remove(r_index));
+            StringBuilder s = new StringBuilder();
+            s.append("time "+time+" greens ");
+            for (Integer I : greens)
+                s.append(I.toString()+" ");
+            s.append("reds ");
+            for (Integer I : reds)
+                s.append(I.toString()+" ");
+            Log.d(TAG,s.toString());
             if (time > gameTime) { //warunek zakończenia gry
                 handler.removeCallbacks(drawScene);
                 handler.removeCallbacks(gameLoop);
             }
             else handler.postDelayed(gameLoop, loopTime);
-
-
         }
     };
 
@@ -244,9 +250,6 @@ public class MainActivity extends Activity {
         preferedDice = sp.getString("prefered_dice", "88:78:9C:0F:CA:8A");
         r = new Random();
         greens = new ArrayList<Integer>();
-        int i = 1;
-        for (;i < 7;i++)
-            greens.add(new Integer(i));
         reds = new HashSet<Integer>();
     }
 
@@ -313,6 +316,11 @@ public class MainActivity extends Activity {
     public void startGame(View v) {
         Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
         time = 0;
+        reds.clear();
+        greens.clear();
+        int i = 1;
+        for (;i < 7;i++)
+            greens.add(new Integer(i));
         handler.post(gameLoop);
         handler.post(drawScene);
     }
