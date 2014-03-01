@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.graphics.*;
 
 import android.widget.Toast;
 import us.dicepl.android.sdk.BluetoothManipulator;
@@ -36,12 +37,22 @@ public class MainActivity extends Activity {
     private Random r;
     private ArrayList<Integer> greens;
     private HashSet<Integer> reds;
+    private Random rnd = new Random();
     private double[] _burn = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     private Die dicePlus;
     private TextView TVResult;
     private TextView addressView;
     private long time;
+
+    int[] burnToColor(double burn) {
+        int r = (int)(255*burn);
+        int g = 0, b = 0;
+        if( burn > 0 ) {
+            g = (int)(255*(1-burn));
+        }
+        return new int[]{r,g,b};
+    }
 
     // burnVal - array with burn values <0,1>
     void setBurnout( double[] burnVal ) {
@@ -63,9 +74,21 @@ public class MainActivity extends Activity {
     }
 
     // make all faces RED
-    void paintAllRed() {
+    void paintAllRed(boolean red) {
         DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
+        int priority = 125; // average, where 255 is low and 0 is high
+        int r = 255;
+        // how long a led is turned on for first time
+        // |ooooooo--------------------------|
+        int ledTimeout = 65535;
+        // how long is whole animation
+        int animationTimeout = ledTimeout;
         int mask = Constants.LedFace.LED_ALL;
+        DiceController.runBlinkAnimation(dicePlus, mask, priority, r, 0, 0, ledTimeout, animationTimeout, 1);
+    }
+
+    void paintRainbow(){
+        DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
         int priority = 125; // average, where 255 is low and 0 is high
         int red = 255;
         // how long a led is turned on for first time
@@ -73,20 +96,108 @@ public class MainActivity extends Activity {
         int ledTimeout = 65535;
         // how long is whole animation
         int animationTimeout = ledTimeout;
-        DiceController.runBlinkAnimation(dicePlus, mask, priority, red, 0, 0, ledTimeout, animationTimeout, 1);
+        int mask = Constants.LedFace.LED_ALL;
+
+        // TODO: how to make a rainbow
+        // TODO: do it for all faces
+        int[] rgb = burnToColor(_burn[0]);
+        DiceController.runBlinkAnimation(dicePlus, mask, priority,
+                rgb[0], rgb[1], rgb[2], ledTimeout, animationTimeout, 1);
+
+
+        private void MakeRainbow(Die die) {
+
+            die.setAnimFps(100);
+
+            int priority = 125;
+
+            int repeat_count = 1;
+
+
+
+
+            int ledOnDuration = 10000;
+
+            int oneSecond = 1000;
+
+            NLedAnimationPacket p =
+
+                    new NLedAnimationPacket(
+
+                            new NLedAnimation(87174, priority, repeat_count, new NLedSequence[] {
+
+                                    new NLedSequence(Constants.LedFace.LED_1, new NLedKeyframe[] {
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_START, 0, 255, 0, ledOnDuration *die.getAnimFps()/oneSecond),
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_END, 255, 0, 0, (0)*die.getAnimFps()/ oneSecond)
+
+                                    }),
+
+                                    new NLedSequence(Constants.LedFace.LED_2, new NLedKeyframe[] {
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_START, 0, 255, 255, (ledOnDuration)*die.getAnimFps()/oneSecond),
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_END, 0, 0, 0, (0)*die.getAnimFps()/oneSecond)
+
+                                    }),
+
+                                    new NLedSequence(Constants.LedFace.LED_3, new NLedKeyframe[] {
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_START, 255, 0, 255, (ledOnDuration)*die.getAnimFps()/oneSecond),
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_END, 0, 0, 0, (0)*die.getAnimFps()/oneSecond)
+
+                                    }),
+
+                                    new NLedSequence(Constants.LedFace.LED_4, new NLedKeyframe[] {
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_START, 255, 255, 0, (ledOnDuration)*die.getAnimFps()/oneSecond),
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_END, 0, 0, 0, (0)*die.getAnimFps()/oneSecond)
+
+                                    }),
+
+                                    new NLedSequence(Constants.LedFace.LED_5, new NLedKeyframe[] {
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_START, 255, 0, 0, (ledOnDuration)*die.getAnimFps()/oneSecond),
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_END, 0, 0, 0, (0)*die.getAnimFps()/oneSecond)
+
+                                    }),
+
+                                    new NLedSequence(Constants.LedFace.LED_6, new NLedKeyframe[] {
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_START, 0, 0, 255, (ledOnDuration)*die.getAnimFps()/oneSecond),
+
+                                            new NLedKeyframe(NLedKeyframe.KFRAME_END, 0, 0, 0, (0)*die.getAnimFps()/oneSecond)
+
+                                    })
+
+                            })
+
+                    );
+
+
+
+
+            DiceController.sendPacket(new WriteRequest(UUIDs.Led, p), die);
+
+            DiceControllerNotifier.notifyDiceResponseListenersLedAnimationStatus(die, null);
+
+        }
     }
 
     private Runnable drawScene = new Runnable() {
         @Override
         public void run() {
-            //Log.d(TAG, "gameLoop");
             double[] tmp = new double[]{0.1, 0.0, 0.3, 0.0, 0.4, 0.0};
             setBurnout( tmp );
             //Tutaj główna pętla aplikacji
 
             // Artur - tests
-//            paintLedsOff();
-//            paintAllRed();
+            // paintLedsOff();
+            paintAllRedGreen();
 
             DiceController.runBlinkAnimation(dicePlus, , 125, 255, 0, 0, 65535, 65535, 1 );
 
@@ -137,6 +248,13 @@ public class MainActivity extends Activity {
                 handler.removeCallbacks(gameLoop);
             }
             else handler.postDelayed(gameLoop, loopTime);
+
+
+            // set colors
+            for (Integer I : reds)
+                _burn[I.intValue()] = rnd.nextDouble();
+            for (Integer I : greens)
+                _burn[I.intValue()] = rnd.nextDouble();
         }
     };
 
