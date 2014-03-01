@@ -4,8 +4,10 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
+import android.widget.Toast;
 import us.dicepl.android.sdk.BluetoothManipulator;
 import us.dicepl.android.sdk.DiceConnectionListener;
 import us.dicepl.android.sdk.DiceController;
@@ -14,6 +16,8 @@ import us.dicepl.android.sdk.DiceResponseListener;
 import us.dicepl.android.sdk.DiceScanningListener;
 import us.dicepl.android.sdk.Die;
 import us.dicepl.android.sdk.responsedata.*;
+
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
     private static final int[] developerKey = new int[] {0x83, 0xed, 0x60, 0x0e, 0x5d, 0x31, 0x8f, 0xe7};
@@ -28,15 +32,14 @@ public class MainActivity extends Activity {
         @Override
         public void onNewDie(Die die) {
             Log.d(TAG, "New DICE+ found:" + die.getAddress());
-            dicePlus = die;
+            ((App)getApplication()).dies.add(die);
+//            dicePlus = die;
             if (preferedDice == null) {
                 Log.d(TAG, "New DICE+ found: there is no prefered dice");
-                spe.putString("prefered_dice", die.getAddress());
-                spe.commit();
-                DiceController.connect(dicePlus);
+                selectDie(die);
             } else if (die.getAddress().equals(preferedDice)) {
                 Log.d(TAG, "New DICE+ found: connect to prefered dice");
-                DiceController.connect(dicePlus);
+                selectDie(die);
             }
         }
 
@@ -138,7 +141,9 @@ public class MainActivity extends Activity {
         }
     };
 
-
+    public void selectDice(View v) {
+        ListDialog.show(MainActivity.this, ((App)getApplication()).dies);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,6 +204,17 @@ public class MainActivity extends Activity {
             }
             return bits;
         }
+    }
+
+    public void selectDie(Die die) {
+        dicePlus = die;
+        spe.putString("prefered_dice", die.getAddress());
+        spe.commit();
+        DiceController.connect(dicePlus);
+    }
+
+    public void startGame(View v) {
+        Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
     }
 
 }
