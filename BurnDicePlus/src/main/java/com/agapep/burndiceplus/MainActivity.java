@@ -45,6 +45,28 @@ public class MainActivity extends Activity {
         Log.d( TAG, log );
     }
 
+    // this makes all LED's turned off
+    void paintLedsOff() {
+        DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
+        int mask = Constants.LedFace.LED_ALL;
+        int priority = 0; // average, where 255 is low and 0 is high
+        DiceController.runBlinkAnimation(dicePlus, mask, priority, 0, 0, 0, 0, 1, 1 );
+    }
+
+    // make all faces RED
+    void paintAllRed() {
+        DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
+        int mask = Constants.LedFace.LED_ALL;
+        int priority = 125; // average, where 255 is low and 0 is high
+        int red = 255;
+        // how long a led is turned on for first time
+        // |ooooooo--------------------------|
+        int ledTimeout = 65535;
+        // how long is whole animation
+        int animationTimeout = ledTimeout;
+        DiceController.runBlinkAnimation(dicePlus, mask, priority, red, 0, 0, ledTimeout, animationTimeout, 1);
+    }
+
     private Runnable drawScene = new Runnable() {
         @Override
         public void run() {
@@ -53,7 +75,14 @@ public class MainActivity extends Activity {
             setBurnout( tmp );
             //Tutaj główna pętla aplikacji
 
-            int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
+            // Artur - tests
+//            paintLedsOff();
+//            paintAllRed();
+
+            DiceController.runBlinkAnimation(dicePlus, , 125, 255, 0, 0, 65535, 65535, 1 );
+
+
+            int loopTime = 50; //ten czas może się zmieniać. szybkość pętli.
             handler.postDelayed(drawScene, loopTime);
         }
     };
@@ -110,10 +139,10 @@ public class MainActivity extends Activity {
         public void onConnectionEstablished(final Die die) {
             Log.d(TAG, "DICE+ Connected");
 
-            DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
+//            DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
 //            DiceController.runStandardAnimation(die, Constants.LedFace.LED_1, 1, Constants.LedAnimationType.ANIMATION_ROLL_FAILED);
 //            DiceController.runFadeAnimation(die, Constants.LedFace.LED_1, 1, 255, 0 ,190, 100, 100);
-            DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 1, 255, 0 ,190, 1000, 100, 10);
+//            DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 1, 255, 0 ,190, 1000, 100, 10);
             // Signing up for roll events
             DiceController.subscribeRolls(dicePlus);
             DiceController.subscribeTouchReadouts(dicePlus);
@@ -179,7 +208,7 @@ public class MainActivity extends Activity {
         @Override
         public void onTouchReadout(Die die, TouchData data, Exception exception) {
             super.onTouchReadout(die, data, exception);
-            DiceController.runBlinkAnimation(dicePlus, data.change_mask, 1, 255, 0, 0, 100, 1, 0);
+//            DiceController.runBlinkAnimation(dicePlus, data.change_mask, 1, 255, 0, 0, 100, 1, 0);
 //            Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
 //            StringBuilder b = new StringBuilder("Touch state:");
 //            for(boolean i : TouchMaskAnalizer.getFaces(data)) {
