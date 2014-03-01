@@ -32,8 +32,7 @@ public class MainActivity extends Activity {
     private String preferedDice = "88:78:9C:0F:CA:8A";
     private Handler handler;
     private final int gameTime = 60000;
-    private int accelerate = 1;
-    private final int randomize_interval = 1000;
+    private int randomize_interval = 1000;
     private Random r;
     private ArrayList<Integer> greens;
     private HashSet<Integer> reds;
@@ -84,24 +83,27 @@ public class MainActivity extends Activity {
 
             //Tutaj główna pętla aplikacji
 
-            burned = burnOneWall(burned, false);
+            //burned = burnOneWall(burned, false);
 
-            if      (time > 55000) {accelerate = 12;}
-            else if (time > 50000) {accelerate = 11;}
-            else if (time > 45000) {accelerate = 10;}
-            else if (time > 40000) {accelerate = 9;}
-            else if (time > 35000) {accelerate = 8;}
-            else if (time > 30000) {accelerate = 7;}
-            else if (time > 25000) {accelerate = 4;}
-            else if (time > 20000) {accelerate = 3;}
-            else if (time > 10000) {accelerate = 2;}
+            if      (time > 55000) {randomize_interval = 10;}
+            else if (time > 50000) {randomize_interval = 50;}
+            else if (time > 45000) {randomize_interval = 100;}
+            else if (time > 40000) {randomize_interval = 200;}
+            else if (time > 35000) {randomize_interval = 300;}
+            else if (time > 30000) {randomize_interval = 400;}
+            else if (time > 25000) {randomize_interval = 500;}
+            else if (time > 20000) {randomize_interval = 600;}
+            else if (time > 15000) {randomize_interval = 700;}
+            else if (time > 10000) {randomize_interval = 800;}
+            else if (time > 5000)  {randomize_interval = 900;}
 
-            int loopTime = (int)randomize_interval/accelerate; //ten czas może się zmieniać. szybkość pętli.
+            int loopTime = randomize_interval; //ten czas może się zmieniać. szybkość pętli.
             time += loopTime;  //ustalanie nowego czasu
             int r_index = r.nextInt(greens.size());
             //Log.d(TAG,"gameLoop time "+time+" side to burn "+greens.get(r_index).toString());
             //StringBuilder s = new StringBuilder();
             reds.add(greens.remove(r_index));
+            setBurned();
             /*s.append("time "+time+" greens ");
             for (Integer I : greens)
                 s.append(I.toString()+" ");
@@ -200,11 +202,72 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    burned = burned ^ data.change_mask;
+                     Integer i = null;
+                     if(data.change_mask == 1) {
+                         i = new Integer(1);
+                         if(reds.contains(i)) {
+                             reds.remove(i);
+                             greens.add(i);
+                         }
+                     }
+                     else if(data.change_mask == 2) {
+                         i = new Integer(2);
+                         if(reds.contains(i)) {
+                             reds.remove(i);
+                             greens.add(i);
+                         }
+                     }
+                     else if(data.change_mask == 4) {
+                         i = new Integer(3);
+                         if(reds.contains(i)) {
+                             reds.remove(i);
+                             greens.add(i);
+                         }
+                     }
+                     else if(data.change_mask == 8) {
+                         i = new Integer(4);
+                         if(reds.contains(i)) {
+                             reds.remove(i);
+                             greens.add(i);
+                         }
+                     }
+                     else if(data.change_mask == 16) {
+                         i = new Integer(5);
+                         if(reds.contains(i)) {
+                             reds.remove(i);
+                             greens.add(i);
+                         }
+                     }
+                     else if(data.change_mask == 32) {
+                         i = new Integer(6);
+                         if(reds.contains(i)) {
+                             reds.remove(i);
+                             greens.add(i);
+                         }
+                     }
+                     setBurned();
                 }
             });
         }
     };
+
+    private void setBurned(){
+        burned = 0;
+        for (Integer i : reds){
+            if (i.intValue() == 1)
+                burned |= 1;
+            else if (i.intValue() == 2)
+                burned |= 2;
+            else if (i.intValue() == 3)
+                burned |= 4;
+            else if (i.intValue() == 4)
+                burned |= 8;
+            else if (i.intValue() == 5)
+                burned |= 16;
+            else if (i.intValue() == 6)
+                burned |= 32;
+        }
+    }
 
     public void selectDice(View v) {
         ListDialog.show(MainActivity.this, ((App)getApplication()).dies, new ListDialog.OnDieSelected() {
@@ -315,6 +378,7 @@ public class MainActivity extends Activity {
         time = 0;
         reds.clear();
         greens.clear();
+        randomize_interval = 1000;
         int i = 1;
         for (;i < 7;i++)
             greens.add(new Integer(i));
