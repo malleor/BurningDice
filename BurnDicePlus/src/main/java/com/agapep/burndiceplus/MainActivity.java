@@ -39,7 +39,8 @@ public class MainActivity extends Activity {
     private double[] _burn = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     private Die dicePlus;
-    TextView TVResult;
+    private TextView TVResult;
+    private TextView addressView;
     private long time;
 
     // burnVal - array with burn values <0,1>
@@ -113,7 +114,7 @@ public class MainActivity extends Activity {
         @Override
         public void onNewDie(Die die) {
             Log.d(TAG, "New DICE+ found:" + die.getAddress());
-            ((App)getApplication()).dies.add(die);
+            ((App)getApplication()).addDice(die);
 //            dicePlus = die;
              //selectDie(die);
         }
@@ -154,12 +155,7 @@ public class MainActivity extends Activity {
             DiceController.subscribeTapReadouts(dicePlus);
             DiceController.subscribeFaceReadouts(dicePlus);
 
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(MainActivity.this, "Ustanowiono Połączenie: " + die.getAddress(), Toast.LENGTH_SHORT).show();
-                }
-            });
+            log("Ustanowiono Połączenie: " + die.getAddress());
         }
 
         @Override
@@ -169,6 +165,8 @@ public class MainActivity extends Activity {
             dicePlus = null;
 
             BluetoothManipulator.startScan();
+
+            log("Nie udało się połączyć: " + die.getAddress());
         }
 
         @Override
@@ -178,8 +176,10 @@ public class MainActivity extends Activity {
             DiceController.unsubscribeTapReadouts(dicePlus);
             DiceController.unsubscribeTouchReadouts(dicePlus);
             DiceController.unsubscribeFaceReadouts(dicePlus);
+            log("Zerwano połączenie: " + die.getAddress());
+            handler.removeCallbacks(gameLoop);
+            handler.removeCallbacks(drawScene);
             dicePlus = null;
-
             BluetoothManipulator.startScan();
         }
     };
@@ -189,12 +189,12 @@ public class MainActivity extends Activity {
         public void onRoll(Die die, RollData rollData, Exception e) {
             super.onRoll(die, rollData, e);
 
-            //Log.d(TAG, "Roll: " + rollData.face);
+            Log.d(TAG, "Roll: " + rollData.face);
 //            Log.d(TAG, "Roll map~: " + Integer.toBinaryString(((1 << (rollData.face-1))&(32))));
 
             final int face = rollData.face;
-//            DiceController.runBlinkAnimation(dicePlus, (~(1 << (rollData.face-1)))&(63) , 1, 0, 255, 0, 200, 10, 0);
-//            //DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 100, 0, 255 ,100, 100, 100, 10);
+            DiceController.runBlinkAnimation(dicePlus, (~(1 << (rollData.face-1)))&(63) , 1, 0, 255, 0, 200, 10, 0);
+            //DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 100, 0, 255 ,100, 100, 100, 10);
             MainActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -214,20 +214,20 @@ public class MainActivity extends Activity {
         public void onTouchReadout(Die die, TouchData data, Exception exception) {
             super.onTouchReadout(die, data, exception);
             DiceController.runBlinkAnimation(dicePlus, data.change_mask, 1, 255, 0, 0, 100, 1, 0);
-//            Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
-//            StringBuilder b = new StringBuilder("Touch state:");
-//            for(boolean i : TouchMaskAnalizer.getFaces(data)) {
-//                if (i) b.append(1); else b.append(0); b.append(" ");
-//            }
-//            Log.d(TAG, b.toString());
+            Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
+            StringBuilder b = new StringBuilder("Touch state:");
+            for(boolean i : TouchMaskAnalizer.getFaces(data)) {
+                if (i) b.append(1); else b.append(0); b.append(" ");
+            }
+            Log.d(TAG, b.toString());
 
         }
 
         @Override
         public void onFaceReadout(Die die, FaceData faceData, Exception exception) {
             super.onFaceReadout(die, faceData, exception);
-            //Log.d(TAG, "Face: " + faceData.face);
-            //DiceController.runBlinkAnimation(dicePlus, 1 << (faceData.face-1), 1, 255, 0, 0, 100, 1, 0);
+            Log.d(TAG, "Face: " + faceData.face);
+            DiceController.runBlinkAnimation(dicePlus, 1 << (faceData.face-1), 1, 255, 0, 0, 100, 1, 0);
         }
     };
 
@@ -261,6 +261,7 @@ public class MainActivity extends Activity {
         Log.d(TAG, "onResume");
 
         TVResult = (TextView) findViewById(R.id.TVResult);
+        addressView = (TextView) findViewById(R.id.address);
 
         // Initiating
         BluetoothManipulator.initiate(this);
@@ -308,13 +309,24 @@ public class MainActivity extends Activity {
     public void selectDie(Die die) {
         DiceController.disconnectAllDice();
         dicePlus = die;
-        spe.putString("prefered_dice", die.getAddress());
-        spe.commit();
-        DiceController.connect(dicePlus);
+//        spe.putString("prefered_dice", die.getAddress());
+//        spe.commit();
+
+        DiceController.connect(die);
+        String nap = String.format(getResources().getText(R.string.address).toString(), die.getAddress());
+        addressView.setText(nap);
+    }
+
+    public void disconnect(View v) {
+        if(dicePlus != null) {
+            Toast.makeText(getBaseContext(), "rozłączenie urządzenia:" +dicePlus.getAddress(), Toast.LENGTH_LONG).show();
+            DiceController.disconnectAllDice();
+            BluetoothManipulator.startScan();
+            dicePlus = null;
+        }
     }
 
     public void startGame(View v) {
-        Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
         time = 0;
         reds.clear();
         greens.clear();
@@ -323,6 +335,23 @@ public class MainActivity extends Activity {
             greens.add(new Integer(i));
         handler.post(gameLoop);
         handler.post(drawScene);
+        if (dicePlus != null) {
+            Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
+            handler.post(gameLoop);
+            handler.post(drawScene);
+        } else {
+            Toast.makeText(getBaseContext(), "nie połączono z urządzeniem", Toast.LENGTH_LONG).show();
+            handler.removeCallbacks(gameLoop);
+            handler.removeCallbacks(drawScene);
+        }
     }
 
+    void log(final String text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 }

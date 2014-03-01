@@ -10,4 +10,14 @@ import java.util.ArrayList;
  */
 public class App extends Application {
     ArrayList<Die> dies = new ArrayList<Die>();
+    public boolean addDice(Die die) {
+        for(int i=0;i<dies.size();++i) {
+            if (dies.get(i).getAddress().equals(die.getAddress())) {
+                dies.set(i,die);
+                return false;
+            }
+        }
+        dies.add(die);
+        return true;
+    }
 }
