@@ -24,13 +24,33 @@ public class MainActivity extends Activity {
     private Die dicePlus;
     TextView TVResult;
 
+    private java.util.Set<String> all_connected_things = new java.util.HashSet<String>();
+
     DiceScanningListener scanningListener = new DiceScanningListener() {
         @Override
         public void onNewDie(Die die) {
-            Log.d(TAG, "New DICE+ found:" + die.getAddress());
+            String this_addr = die.getAddress();
+
+            Log.d(TAG, "New DICE+ found: " + this_addr);
             dicePlus = die;
+
+            all_connected_things.add(this_addr);
+            String str = "";
+            for(String addr : all_connected_things)
+                str += addr + '\n';
+            final String strf = str;
+            MainActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    TVResult.setText(strf);
+                }
+            });
+
+            preferedDice = "88:78:9C:69:E9:8A";
+            Log.d(TAG, "Preferred device is: " + preferedDice);
+
             if (preferedDice == null) {
-                Log.d(TAG, "New DICE+ found: there is no prefered dice");
+                Log.d(TAG, "New DICE+ found: there is no prefered dice: " + this_addr);
                 spe.putString("prefered_dice", die.getAddress());
                 spe.commit();
                 DiceController.connect(dicePlus);
