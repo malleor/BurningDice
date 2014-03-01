@@ -41,7 +41,6 @@ public class MainActivity extends Activity {
             //Tutaj główna pętla aplikacji
 
             int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
-            time += loopTime;
             handler.postDelayed(drawScene, loopTime);
         }
     };
@@ -55,11 +54,11 @@ public class MainActivity extends Activity {
 
             int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
             time += loopTime;  //ustalanie nowego czasu
-            if (time > 100000) {
+            if (time > 100000) { //warunek zakończenia gry
                 handler.removeCallbacks(drawScene);
-                handler.removeCallbacks(gameLoop); //warunek zakończenia gry
+                handler.removeCallbacks(gameLoop);
             }
-            handler.postDelayed(gameLoop, loopTime);
+            else handler.postDelayed(gameLoop, loopTime);
         }
     };
 
