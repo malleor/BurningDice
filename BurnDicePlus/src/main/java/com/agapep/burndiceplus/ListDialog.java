@@ -13,7 +13,11 @@ import java.util.ArrayList;
  */
 public class ListDialog {
 
-    public static void show(final Context c, ArrayList<Die> list) {
+    public interface OnDieSelected {
+        public void onDieSelected(Die dia);
+    }
+
+    public static void show(final Context c, final ArrayList<Die> list, final OnDieSelected selected) {
         AlertDialog.Builder builderSingle = new AlertDialog.Builder(
                 c);
         builderSingle.setIcon(R.drawable.ic_launcher);
@@ -32,21 +36,7 @@ public class ListDialog {
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String strName = arrayAdapter.getItem(which);
-                        AlertDialog.Builder builderInner = new AlertDialog.Builder(c);
-                        builderInner.setMessage(strName);
-                        builderInner.setTitle("Your Selected Item is");
-                        builderInner.setPositiveButton("Ok",
-                                new DialogInterface.OnClickListener() {
-
-                                    @Override
-                                    public void onClick(
-                                            DialogInterface dialog,
-                                            int which) {
-                                        dialog.dismiss();
-                                    }
-                                });
-                        builderInner.show();
+                         selected.onDieSelected(list.get(which));
                     }
                 });
         builderSingle.show();
