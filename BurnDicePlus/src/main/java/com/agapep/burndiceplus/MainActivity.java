@@ -1,5 +1,6 @@
 package com.agapep.burndiceplus;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
@@ -12,20 +13,31 @@ import us.dicepl.android.sdk.DiceResponseAdapter;
 import us.dicepl.android.sdk.DiceResponseListener;
 import us.dicepl.android.sdk.DiceScanningListener;
 import us.dicepl.android.sdk.Die;
-import us.dicepl.android.sdk.responsedata.RollData;
+import us.dicepl.android.sdk.responsedata.*;
 
 public class MainActivity extends Activity {
     private static final int[] developerKey = new int[] {0x83, 0xed, 0x60, 0x0e, 0x5d, 0x31, 0x8f, 0xe7};
     private static final String TAG = "DICEPlus";
+    private SharedPreferences sp;
+    private SharedPreferences.Editor spe;
+    private String preferedDice = null;
     private Die dicePlus;
     TextView TVResult;
 
     DiceScanningListener scanningListener = new DiceScanningListener() {
         @Override
         public void onNewDie(Die die) {
-            Log.d(TAG, "New DICE+ found");
+            Log.d(TAG, "New DICE+ found:" + die.getAddress());
             dicePlus = die;
-            DiceController.connect(dicePlus);
+            if (preferedDice == null) {
+                Log.d(TAG, "New DICE+ found: there is no prefered dice");
+                spe.putString("prefered_dice", die.getAddress());
+                spe.commit();
+                DiceController.connect(dicePlus);
+            } else if (die.getAddress().equals(preferedDice)) {
+                Log.d(TAG, "New DICE+ found: connect to prefered dice");
+                DiceController.connect(dicePlus);
+            }
         }
 
         @Override
@@ -56,6 +68,9 @@ public class MainActivity extends Activity {
 
             // Signing up for roll events
             DiceController.subscribeRolls(dicePlus);
+            DiceController.subscribeTouchReadouts(dicePlus);
+            DiceController.subscribeTapReadouts(dicePlus);
+            DiceController.subscribeFaceReadouts(dicePlus);
         }
 
         @Override
@@ -71,6 +86,9 @@ public class MainActivity extends Activity {
         public void onConnectionLost(Die die) {
             Log.d(TAG, "Connection lost");
 
+            DiceController.unsubscribeTapReadouts(dicePlus);
+            DiceController.unsubscribeTouchReadouts(dicePlus);
+            DiceController.unsubscribeFaceReadouts(dicePlus);
             dicePlus = null;
 
             BluetoothManipulator.startScan();
@@ -93,12 +111,42 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        @Override
+        public void onTapReadout(Die die, TapData tapData, Exception exception) {
+            super.onTapReadout(die, tapData, exception);
+            Log.d(TAG, "Tap: " + tapData.x + " " + tapData.y + " " + tapData.z);
+
+        }
+
+        @Override
+        public void onTouchReadout(Die die, TouchData data, Exception exception) {
+            super.onTouchReadout(die, data, exception);
+            Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
+            StringBuilder b = new StringBuilder("Touch state:");
+            for(boolean i : TouchMaskAnalizer.getFaces(data)) {
+                if (i) b.append(1); else b.append(0); b.append(" ");
+            }
+            Log.d(TAG, b.toString());
+
+        }
+
+        @Override
+        public void onFaceReadout(Die die, FaceData faceData, Exception exception) {
+            super.onFaceReadout(die, faceData, exception);
+            Log.d(TAG, "Face: " + faceData.face);
+        }
     };
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        sp = getPreferences(MODE_PRIVATE);
+        spe = sp.edit();
+        preferedDice = sp.getString("prefered_dice", null);
     }
 
 
@@ -113,7 +161,6 @@ public class MainActivity extends Activity {
         // Initiating
         BluetoothManipulator.initiate(this);
         DiceController.initiate(developerKey);
-
         // Listen to all the state occurring during the discovering process of DICE+
         BluetoothManipulator.registerDiceScanningListener(scanningListener);
 
@@ -136,10 +183,22 @@ public class MainActivity extends Activity {
         // Unregister all the listeners
         DiceController.unregisterDiceConnectionListener(connectionListener);
         BluetoothManipulator.unregisterDiceScanningListener(scanningListener);
+        BluetoothManipulator.cancelScan();
         DiceController.unregisterDiceResponseListener(responseListener);
-
         DiceController.disconnectDie(dicePlus);
         dicePlus = null;
+    }
+
+
+    static class TouchMaskAnalizer {
+        public static boolean[] getFaces(TouchData data) {
+            boolean[] bits = new boolean[6];
+            for (int i = 5; i >= 0; i--) {
+                if(((data.current_state_mask & ( 1 << i )) >> i) > 0)
+                    bits[i] = true; else bits[i] = false;
+            }
+            return bits;
+        }
     }
 
 }
