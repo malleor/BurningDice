@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
     private RelativeLayout PointsBox;
     private TextView addressView;
     private long time;
+    private int burned = 0;
 
     // burnVal - array with burn values <0,1>
     void setBurnout( double[] burnVal ) {
@@ -59,12 +60,13 @@ public class MainActivity extends Activity {
     private Runnable drawScene = new Runnable() {
         @Override
         public void run() {
-            //Log.d(TAG, "gameLoop");
+            Log.d(TAG, "drawLoop:" );
             double[] tmp = new double[]{0.1, 0.0, 0.3, 0.0, 0.4, 0.0};
             setBurnout( tmp );
             //Tutaj główna pętla aplikacji
+            DiceController.runBlinkAnimation(dicePlus, burned, 1, 255, 0 ,0, 150, 150, 1);
 
-            int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
+            int loopTime = 200; //ten czas może się zmieniać. szybkość pętli.
             handler.postDelayed(drawScene, loopTime);
         }
     };
@@ -81,6 +83,8 @@ public class MainActivity extends Activity {
             //Log.d(TAG, "gameLoop");
 
             //Tutaj główna pętla aplikacji
+
+            burned = burnOneWall(burned, false);
 
             if      (time > 55000) {accelerate = 12;}
             else if (time > 50000) {accelerate = 11;}
@@ -155,8 +159,8 @@ public class MainActivity extends Activity {
             // Signing up for roll events
             DiceController.subscribeRolls(dicePlus);
             DiceController.subscribeTouchReadouts(dicePlus);
-            DiceController.subscribeTapReadouts(dicePlus);
-            DiceController.subscribeFaceReadouts(dicePlus);
+//            DiceController.subscribeTapReadouts(dicePlus);
+//            DiceController.subscribeFaceReadouts(dicePlus);
 
             log("Ustanowiono Połączenie: " + die.getAddress());
         }
@@ -176,9 +180,9 @@ public class MainActivity extends Activity {
         public void onConnectionLost(Die die) {
             Log.d(TAG, "Connection lost");
 
-            DiceController.unsubscribeTapReadouts(dicePlus);
+//            DiceController.unsubscribeTapReadouts(dicePlus);
             DiceController.unsubscribeTouchReadouts(dicePlus);
-            DiceController.unsubscribeFaceReadouts(dicePlus);
+//            DiceController.unsubscribeFaceReadouts(dicePlus);
             log("Zerwano połączenie: " + die.getAddress());
             handler.removeCallbacks(gameLoop);
             handler.removeCallbacks(drawScene);
@@ -188,49 +192,17 @@ public class MainActivity extends Activity {
     };
 
     DiceResponseListener responseListener = new DiceResponseAdapter() {
+
         @Override
-        public void onRoll(Die die, RollData rollData, Exception e) {
-            super.onRoll(die, rollData, e);
-
-            Log.d(TAG, "Roll: " + rollData.face);
-//            Log.d(TAG, "Roll map~: " + Integer.toBinaryString(((1 << (rollData.face-1))&(32))));
-
-            final int face = rollData.face;
-            DiceController.runBlinkAnimation(dicePlus, (~(1 << (rollData.face-1)))&(63) , 1, 0, 255, 0, 200, 10, 0);
-            //DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 100, 0, 255 ,100, 100, 100, 10);
-            MainActivity.this.runOnUiThread(new Runnable() {
+        public void onTouchReadout(Die die, final TouchData data, Exception exception) {
+            super.onTouchReadout(die, data, exception);
+            if ((data.current_state_mask & data.change_mask) == 0) return;
+            runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    TVResult.setText(""+face);
+                    burned = burned ^ data.change_mask;
                 }
             });
-        }
-
-        @Override
-        public void onTapReadout(Die die, TapData tapData, Exception exception) {
-            super.onTapReadout(die, tapData, exception);
-            //Log.d(TAG, "Tap: " + tapData.x + " " + tapData.y + " " + tapData.z);
-
-        }
-
-        @Override
-        public void onTouchReadout(Die die, TouchData data, Exception exception) {
-            super.onTouchReadout(die, data, exception);
-            DiceController.runBlinkAnimation(dicePlus, data.change_mask, 1, 255, 0, 0, 100, 1, 0);
-            Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
-            StringBuilder b = new StringBuilder("Touch state:");
-            for(boolean i : TouchMaskAnalizer.getFaces(data)) {
-                if (i) b.append(1); else b.append(0); b.append(" ");
-            }
-            Log.d(TAG, b.toString());
-
-        }
-
-        @Override
-        public void onFaceReadout(Die die, FaceData faceData, Exception exception) {
-            super.onFaceReadout(die, faceData, exception);
-            Log.d(TAG, "Face: " + faceData.face);
-            DiceController.runBlinkAnimation(dicePlus, 1 << (faceData.face-1), 1, 255, 0, 0, 100, 1, 0);
         }
     };
 
@@ -326,6 +298,8 @@ public class MainActivity extends Activity {
 
     public void disconnect(View v) {
         if(dicePlus != null) {
+            handler.removeCallbacks(gameLoop);
+            handler.removeCallbacks(drawScene);
             Toast.makeText(getBaseContext(), "rozłączenie urządzenia:" +dicePlus.getAddress(), Toast.LENGTH_LONG).show();
             DiceController.disconnectAllDice();
             BluetoothManipulator.startScan();
@@ -346,8 +320,8 @@ public class MainActivity extends Activity {
             greens.add(new Integer(i));
         if (dicePlus != null) {
             Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
-            handler.post(gameLoop);
-            handler.post(drawScene);
+            handler.postDelayed(gameLoop, 1000);
+            handler.postDelayed(drawScene, 1000);
         } else {
             Toast.makeText(getBaseContext(), "nie połączono z urządzeniem", Toast.LENGTH_LONG).show();
             handler.removeCallbacks(gameLoop);
@@ -362,5 +336,28 @@ public class MainActivity extends Activity {
                 Toast.makeText(MainActivity.this, text, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    Random random = new Random();
+    int burnOneWall(int wall, boolean reverse) {
+        int count;
+        if (reverse) count = Integer.bitCount(wall & 63);
+        else count = Integer.bitCount(wall ^ 63);
+        Log.d(TAG, "count_bits: " + count);
+        if (count != 0) {
+            int i = random.nextInt(count);
+            int j = 0;
+
+            while (i >= 0) {
+                Log.d(TAG, "count_bits_while: " + i +" "+ j+ " "+ ((wall >> j) & 1));
+                if(((wall >> j) & 1) == (reverse?1:0)) {
+                    if (i==0) return  wall | ( 1 << j);
+                    --i;
+                }
+                ++j;
+            }
+//            return wall | ( 1 << random.nextInt(count));
+        }
+        return wall;
     }
 }
