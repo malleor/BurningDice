@@ -4,5 +4,6 @@
     <string name="app_name">Hello DICEPlus</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">punkty: %d</string>
+    <string name="address">adres: %s</string>
 
 </resources>
