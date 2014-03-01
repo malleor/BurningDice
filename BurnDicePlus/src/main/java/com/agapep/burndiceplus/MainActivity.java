@@ -15,6 +15,7 @@ import us.dicepl.android.sdk.DiceResponseAdapter;
 import us.dicepl.android.sdk.DiceResponseListener;
 import us.dicepl.android.sdk.DiceScanningListener;
 import us.dicepl.android.sdk.Die;
+import us.dicepl.android.sdk.protocol.constants.Constants;
 import us.dicepl.android.sdk.responsedata.*;
 
 import java.util.ArrayList;
@@ -68,7 +69,10 @@ public class MainActivity extends Activity {
         @Override
         public void onConnectionEstablished(Die die) {
             Log.d(TAG, "DICE+ Connected");
-
+            DiceController.setMode(dicePlus, Constants.DieMode.DIE_MODE_NO_ROLL_ANIMATIONS);
+//            DiceController.runStandardAnimation(die, Constants.LedFace.LED_1, 1, Constants.LedAnimationType.ANIMATION_ROLL_FAILED);
+//            DiceController.runFadeAnimation(die, Constants.LedFace.LED_1, 1, 255, 0 ,190, 100, 100);
+            DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 1, 255, 0 ,190, 1000, 100, 10);
             // Signing up for roll events
             DiceController.subscribeRolls(dicePlus);
             DiceController.subscribeTouchReadouts(dicePlus);
@@ -104,9 +108,11 @@ public class MainActivity extends Activity {
             super.onRoll(die, rollData, e);
 
             Log.d(TAG, "Roll: " + rollData.face);
+//            Log.d(TAG, "Roll map~: " + Integer.toBinaryString(((1 << (rollData.face-1))&(32))));
 
             final int face = rollData.face;
-
+            DiceController.runBlinkAnimation(dicePlus, (~(1 << (rollData.face-1)))&(63) , 1, 0, 255, 0, 200, 10, 0);
+            //DiceController.runBlinkAnimation(die, Constants.LedFace.LED_1, 100, 0, 255 ,100, 100, 100, 10);
             MainActivity.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -125,12 +131,13 @@ public class MainActivity extends Activity {
         @Override
         public void onTouchReadout(Die die, TouchData data, Exception exception) {
             super.onTouchReadout(die, data, exception);
-            Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
-            StringBuilder b = new StringBuilder("Touch state:");
-            for(boolean i : TouchMaskAnalizer.getFaces(data)) {
-                if (i) b.append(1); else b.append(0); b.append(" ");
-            }
-            Log.d(TAG, b.toString());
+            DiceController.runBlinkAnimation(dicePlus, data.change_mask, 1, 255, 0, 0, 100, 1, 0);
+            //Log.d(TAG, "Touch: " + data.current_state_mask + " " + data.change_mask + " " + data.timestamp);
+            //StringBuilder b = new StringBuilder("Touch state:");
+                        //for(boolean i : TouchMaskAnalizer.getFaces(data)) {
+            //    if (i) b.append(1); else b.append(0); b.append(" ");
+            //}
+            //Log.d(TAG, b.toString());
 
         }
 
@@ -138,6 +145,7 @@ public class MainActivity extends Activity {
         public void onFaceReadout(Die die, FaceData faceData, Exception exception) {
             super.onFaceReadout(die, faceData, exception);
             Log.d(TAG, "Face: " + faceData.face);
+            DiceController.runBlinkAnimation(dicePlus, 1 << (faceData.face-1), 1, 255, 0, 0, 100, 1, 0);
         }
     };
 
@@ -207,6 +215,7 @@ public class MainActivity extends Activity {
     }
 
     public void selectDie(Die die) {
+        DiceController.disconnectAllDice();
         dicePlus = die;
         spe.putString("prefered_dice", die.getAddress());
         spe.commit();
