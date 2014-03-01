@@ -42,9 +42,13 @@ public class MainActivity extends Activity {
     private Die dicePlus;
     private TextView TVResult;
     private RelativeLayout PointsBox;
+    private TextView PointsText;
     private TextView addressView;
     private long time;
     private int burned = 0;
+
+    private int points;
+    private boolean playing;
 
     // burnVal - array with burn values <0,1>
     void setBurnout( double[] burnVal ) {
@@ -74,46 +78,57 @@ public class MainActivity extends Activity {
     private Runnable gameLoop = new Runnable() {
         @Override
         public void run() {
-            if (greens.size() == 0 && reds.size() == 6) { //warunek zakończenia gry
+            boolean user_failed = greens.size() == 0 && reds.size() == 6;
+            boolean time_is_up = time > gameTime;
+
+            if (!user_failed && !time_is_up) { // gra trwa
+                //Log.d(TAG, "gameLoop");
+
+                //Tutaj główna pętla aplikacji
+
+                burned = burnOneWall(burned, false);
+
+                if      (time > 55000) {accelerate = 12;}
+                else if (time > 50000) {accelerate = 11;}
+                else if (time > 45000) {accelerate = 10;}
+                else if (time > 40000) {accelerate = 9;}
+                else if (time > 35000) {accelerate = 8;}
+                else if (time > 30000) {accelerate = 7;}
+                else if (time > 25000) {accelerate = 4;}
+                else if (time > 20000) {accelerate = 3;}
+                else if (time > 10000) {accelerate = 2;}
+
+                int loopTime = (int)randomize_interval/accelerate; //ten czas może się zmieniać. szybkość pętli.
+                time += loopTime;  //ustalanie nowego czasu
+                int r_index = r.nextInt(greens.size());
+                //Log.d(TAG,"gameLoop time "+time+" side to burn "+greens.get(r_index).toString());
+                //StringBuilder s = new StringBuilder();
+                reds.add(greens.remove(r_index));
+                /*s.append("time "+time+" greens ");
+                for (Integer I : greens)
+                    s.append(I.toString()+" ");
+                s.append("reds ");
+                for (Integer I : reds)
+                    s.append(I.toString()+" ");
+                Log.d(TAG,s.toString());*/
+
+                handler.postDelayed(gameLoop, loopTime);
+
+            } else {
+
                 handler.removeCallbacks(drawScene);
                 handler.removeCallbacks(gameLoop);
-                //stop(taps);
-                return;
+
+                playing = false;
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ++points;
+                        PointsBox.setAlpha(0.3f);
+                    }
+                });
             }
-            //Log.d(TAG, "gameLoop");
-
-            //Tutaj główna pętla aplikacji
-
-            burned = burnOneWall(burned, false);
-
-            if      (time > 55000) {accelerate = 12;}
-            else if (time > 50000) {accelerate = 11;}
-            else if (time > 45000) {accelerate = 10;}
-            else if (time > 40000) {accelerate = 9;}
-            else if (time > 35000) {accelerate = 8;}
-            else if (time > 30000) {accelerate = 7;}
-            else if (time > 25000) {accelerate = 4;}
-            else if (time > 20000) {accelerate = 3;}
-            else if (time > 10000) {accelerate = 2;}
-
-            int loopTime = (int)randomize_interval/accelerate; //ten czas może się zmieniać. szybkość pętli.
-            time += loopTime;  //ustalanie nowego czasu
-            int r_index = r.nextInt(greens.size());
-            //Log.d(TAG,"gameLoop time "+time+" side to burn "+greens.get(r_index).toString());
-            //StringBuilder s = new StringBuilder();
-            reds.add(greens.remove(r_index));
-            /*s.append("time "+time+" greens ");
-            for (Integer I : greens)
-                s.append(I.toString()+" ");
-            s.append("reds ");
-            for (Integer I : reds)
-                s.append(I.toString()+" ");
-            Log.d(TAG,s.toString());*/
-            if (time > gameTime) { //warunek zakończenia gry
-                handler.removeCallbacks(drawScene);
-                handler.removeCallbacks(gameLoop);
-            }
-            else handler.postDelayed(gameLoop, loopTime);
         }
     };
 
@@ -196,11 +211,19 @@ public class MainActivity extends Activity {
         @Override
         public void onTouchReadout(Die die, final TouchData data, Exception exception) {
             super.onTouchReadout(die, data, exception);
-            if ((data.current_state_mask & data.change_mask) == 0) return;
+
+            if(!playing)
+                return;
+
+            if ((data.current_state_mask & data.change_mask) == 0)
+                return;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     burned = burned ^ data.change_mask;
+
+                    ++points;
+                    PointsText.setText("" + points);
                 }
             });
         }
@@ -228,6 +251,9 @@ public class MainActivity extends Activity {
         r = new Random();
         greens = new ArrayList<Integer>();
         reds = new HashSet<Integer>();
+
+        points = 0;
+        playing = false;
     }
 
 
@@ -239,6 +265,7 @@ public class MainActivity extends Activity {
 
         TVResult = (TextView) findViewById(R.id.TVResult);
         PointsBox = (RelativeLayout) findViewById(R.id.PointsBox);
+        PointsText = (TextView) findViewById(R.id.PointsText);
         addressView = (TextView) findViewById(R.id.address);
 
         // Initiating
@@ -311,6 +338,7 @@ public class MainActivity extends Activity {
         Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
 
         PointsBox.setAlpha(1.0f);
+        playing = true;
 
         time = 0;
         reds.clear();
