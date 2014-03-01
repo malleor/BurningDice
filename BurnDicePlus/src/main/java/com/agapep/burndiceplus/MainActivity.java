@@ -93,15 +93,16 @@ public class MainActivity extends Activity {
             int loopTime = (int)randomize_interval/accelerate; //ten czas może się zmieniać. szybkość pętli.
             time += loopTime;  //ustalanie nowego czasu
             int r_index = r.nextInt(greens.size());
+            //Log.d(TAG,"gameLoop time "+time+" side to burn "+greens.get(r_index).toString());
+            //StringBuilder s = new StringBuilder();
             reds.add(greens.remove(r_index));
-            StringBuilder s = new StringBuilder();
-            s.append("time "+time+" greens ");
+            /*s.append("time "+time+" greens ");
             for (Integer I : greens)
                 s.append(I.toString()+" ");
             s.append("reds ");
             for (Integer I : reds)
                 s.append(I.toString()+" ");
-            Log.d(TAG,s.toString());
+            Log.d(TAG,s.toString());*/
             if (time > gameTime) { //warunek zakończenia gry
                 handler.removeCallbacks(drawScene);
                 handler.removeCallbacks(gameLoop);
@@ -333,8 +334,6 @@ public class MainActivity extends Activity {
         int i = 1;
         for (;i < 7;i++)
             greens.add(new Integer(i));
-        handler.post(gameLoop);
-        handler.post(drawScene);
         if (dicePlus != null) {
             Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
             handler.post(gameLoop);
