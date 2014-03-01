@@ -20,14 +20,23 @@ import us.dicepl.android.sdk.protocol.constants.Constants;
 import us.dicepl.android.sdk.responsedata.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Random;
 
 public class MainActivity extends Activity {
     private static final int[] developerKey = new int[] {0x83, 0xed, 0x60, 0x0e, 0x5d, 0x31, 0x8f, 0xe7};
     private static final String TAG = "DICEPlus";
     private SharedPreferences sp;
     private SharedPreferences.Editor spe;
-    private String preferedDice = null;
+    private String preferedDice;
     private Handler handler;
+    private final int gameTime = 60000;
+    private int accelerate = 1;
+    private final int randomize_interval = 1000;
+    private Random r;
+    private ArrayList<Integer> greens;
+    private HashSet<Integer> reds;
+
 
     private Die dicePlus;
     TextView TVResult;
@@ -36,7 +45,7 @@ public class MainActivity extends Activity {
     private Runnable drawScene = new Runnable() {
         @Override
         public void run() {
-            Log.d(TAG, "gameLoop");
+            //Log.d(TAG, "gameLoop");
 
             //Tutaj główna pętla aplikacji
 
@@ -48,17 +57,37 @@ public class MainActivity extends Activity {
     private Runnable gameLoop = new Runnable() {
         @Override
         public void run() {
-            Log.d(TAG, "gameLoop");
+            if (greens.size() == 0 && reds.size() == 6) { //warunek zakończenia gry
+                handler.removeCallbacks(drawScene);
+                handler.removeCallbacks(gameLoop);
+                //stop(taps);
+                return;
+            }
+            //Log.d(TAG, "gameLoop");
 
             //Tutaj główna pętla aplikacji
 
-            int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
+            if      (time > 55000) {accelerate = 12;}
+            else if (time > 50000) {accelerate = 11;}
+            else if (time > 45000) {accelerate = 10;}
+            else if (time > 40000) {accelerate = 9;}
+            else if (time > 35000) {accelerate = 8;}
+            else if (time > 30000) {accelerate = 7;}
+            else if (time > 25000) {accelerate = 4;}
+            else if (time > 20000) {accelerate = 3;}
+            else if (time > 10000) {accelerate = 2;}
+
+            int loopTime = (int)randomize_interval/accelerate; //ten czas może się zmieniać. szybkość pętli.
             time += loopTime;  //ustalanie nowego czasu
-            if (time > 100000) { //warunek zakończenia gry
+            int r_index = r.nextInt(greens.size());
+            reds.add(greens.remove(r_index));
+            if (time > gameTime) { //warunek zakończenia gry
                 handler.removeCallbacks(drawScene);
                 handler.removeCallbacks(gameLoop);
             }
             else handler.postDelayed(gameLoop, loopTime);
+
+
         }
     };
 
@@ -193,7 +222,13 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         sp = getPreferences(MODE_PRIVATE);
         spe = sp.edit();
-        preferedDice = sp.getString("prefered_dice", null);
+        preferedDice = sp.getString("prefered_dice", "88:78:9C:0F:CA:8A");
+        r = new Random();
+        greens = new ArrayList<Integer>();
+        int i = 1;
+        for (;i < 7;i++)
+            greens.add(new Integer(i));
+        reds = new HashSet<Integer>();
     }
 
 
