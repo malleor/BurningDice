@@ -3,6 +3,7 @@ package com.agapep.burndiceplus;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Activity;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -26,8 +27,41 @@ public class MainActivity extends Activity {
     private SharedPreferences sp;
     private SharedPreferences.Editor spe;
     private String preferedDice = null;
+    private Handler handler;
+
     private Die dicePlus;
     TextView TVResult;
+    private long time;
+
+    private Runnable drawScene = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "gameLoop");
+
+            //Tutaj główna pętla aplikacji
+
+            int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
+            time += loopTime;
+            handler.postDelayed(drawScene, loopTime);
+        }
+    };
+
+    private Runnable gameLoop = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "gameLoop");
+
+            //Tutaj główna pętla aplikacji
+
+            int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
+            time += loopTime;  //ustalanie nowego czasu
+            if (time > 100000) {
+                handler.removeCallbacks(drawScene);
+                handler.removeCallbacks(gameLoop); //warunek zakończenia gry
+            }
+            handler.postDelayed(gameLoop, loopTime);
+        }
+    };
 
     DiceScanningListener scanningListener = new DiceScanningListener() {
         @Override
@@ -156,6 +190,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        handler = new Handler();
         setContentView(R.layout.activity_main);
         sp = getPreferences(MODE_PRIVATE);
         spe = sp.edit();
@@ -224,6 +259,9 @@ public class MainActivity extends Activity {
 
     public void startGame(View v) {
         Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
+        time = 0;
+        handler.post(gameLoop);
+        handler.post(drawScene);
     }
 
 }
