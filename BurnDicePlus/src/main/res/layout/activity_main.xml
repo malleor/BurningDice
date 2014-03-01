@@ -12,7 +12,7 @@
     <Button android:text="wybierz urządzenie"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:onClick="selectDice"/>
+            android:onClick="selectDice" />
 
     <Button android:text="graj"
             android:layout_width="match_parent"

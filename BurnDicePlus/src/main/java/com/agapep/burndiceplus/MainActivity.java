@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.RelativeLayout;
 
 import android.widget.Toast;
 import us.dicepl.android.sdk.BluetoothManipulator;
@@ -31,7 +32,8 @@ public class MainActivity extends Activity {
     private double[] _burn = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     private Die dicePlus;
-    TextView TVResult;
+    private TextView TVResult;
+    private RelativeLayout PointsBox;
     private long time;
 
     // burnVal - array with burn values <0,1>
@@ -210,10 +212,13 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         handler = new Handler();
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_alternative);
         sp = getPreferences(MODE_PRIVATE);
         spe = sp.edit();
         preferedDice = sp.getString("prefered_dice", null);
+
+        TVResult = (TextView) findViewById(R.id.TVResult);
+        PointsBox = (RelativeLayout) findViewById(R.id.PointsBox);
     }
 
 
@@ -223,7 +228,6 @@ public class MainActivity extends Activity {
 
         Log.d(TAG, "onResume");
 
-        TVResult = (TextView) findViewById(R.id.TVResult);
 
         // Initiating
         BluetoothManipulator.initiate(this);
@@ -278,6 +282,9 @@ public class MainActivity extends Activity {
 
     public void startGame(View v) {
         Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
+
+        PointsBox.setAlpha(1.0f);
+
         time = 0;
         handler.post(gameLoop);
         handler.post(drawScene);
