@@ -28,17 +28,30 @@ public class MainActivity extends Activity {
     private SharedPreferences.Editor spe;
     private String preferedDice = null;
     private Handler handler;
+    private double[] _burn = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     private Die dicePlus;
     private TextView TVResult;
     private TextView addressView;
     private long time;
 
+    // burnVal - array with burn values <0,1>
+    void setBurnout( double[] burnVal ) {
+        String log = "COLOR Burnout: ";
+        for( int i=0; i<6; ++i ) {
+            assert( burnVal[i] >= 0.0 && burnVal[i] <= 1.0 );
+            log += burnVal[i] + ", ";
+        }
+        System.arraycopy(burnVal, 0, _burn, 0, 6 );
+        Log.d( TAG, log );
+    }
+
     private Runnable drawScene = new Runnable() {
         @Override
         public void run() {
             Log.d(TAG, "gameLoop");
-
+            double[] tmp = new double[]{0.1, 0.0, 0.3, 0.0, 0.4, 0.0};
+            setBurnout( tmp );
             //Tutaj główna pętla aplikacji
 
             int loopTime = 300; //ten czas może się zmieniać. szybkość pętli.
