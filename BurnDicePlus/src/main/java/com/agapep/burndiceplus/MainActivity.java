@@ -20,6 +20,7 @@ import us.dicepl.android.sdk.protocol.constants.Constants;
 import us.dicepl.android.sdk.responsedata.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Random;
 
 public class MainActivity extends Activity {
@@ -27,8 +28,14 @@ public class MainActivity extends Activity {
     private static final String TAG = "DICEPlus";
     private SharedPreferences sp;
     private SharedPreferences.Editor spe;
-    private String preferedDice = null;
+    private String preferedDice = "88:78:9C:0F:CA:8A";
     private Handler handler;
+    private final int gameTime = 60000;
+    private int accelerate = 1;
+    private final int randomize_interval = 1000;
+    private Random r;
+    private ArrayList<Integer> greens;
+    private HashSet<Integer> reds;
     private double[] _burn = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
     private Die dicePlus;
@@ -38,22 +45,22 @@ public class MainActivity extends Activity {
     private int burned = 0;
 
     // burnVal - array with burn values <0,1>
-//    void setBurnout( double[] burnVal ) {
-//        String log = "COLOR Burnout: ";
-//        for( int i=0; i<6; ++i ) {
-//            assert( burnVal[i] >= 0.0 && burnVal[i] <= 1.0 );
-//            log += burnVal[i] + ", ";
-//        }
-//        System.arraycopy(burnVal, 0, _burn, 0, 6 );
-//        Log.d( TAG, log );
-//    }
+    void setBurnout( double[] burnVal ) {
+        String log = "COLOR Burnout: ";
+        for( int i=0; i<6; ++i ) {
+            assert( burnVal[i] >= 0.0 && burnVal[i] <= 1.0 );
+            log += burnVal[i] + ", ";
+        }
+        System.arraycopy(burnVal, 0, _burn, 0, 6 );
+        Log.d( TAG, log );
+    }
 
     private Runnable drawScene = new Runnable() {
         @Override
         public void run() {
             Log.d(TAG, "drawLoop:" );
-//            double[] tmp = new double[]{0.1, 0.0, 0.3, 0.0, 0.4, 0.0};
-//            setBurnout( tmp );
+            double[] tmp = new double[]{0.1, 0.0, 0.3, 0.0, 0.4, 0.0};
+            setBurnout( tmp );
             //Tutaj główna pętla aplikacji
             DiceController.runBlinkAnimation(dicePlus, burned, 1, 255, 0 ,0, 150, 150, 1);
 
@@ -65,13 +72,42 @@ public class MainActivity extends Activity {
     private Runnable gameLoop = new Runnable() {
         @Override
         public void run() {
-            Log.d(TAG, "gameLoop");
+            if (greens.size() == 0 && reds.size() == 6) { //warunek zakończenia gry
+                handler.removeCallbacks(drawScene);
+                handler.removeCallbacks(gameLoop);
+                //stop(taps);
+                return;
+            }
+            //Log.d(TAG, "gameLoop");
 
             //Tutaj główna pętla aplikacji
+
             burned = burnOneWall(burned, false);
-            int loopTime = 2000; //ten czas może się zmieniać. szybkość pętli.\
+
+            if      (time > 55000) {accelerate = 12;}
+            else if (time > 50000) {accelerate = 11;}
+            else if (time > 45000) {accelerate = 10;}
+            else if (time > 40000) {accelerate = 9;}
+            else if (time > 35000) {accelerate = 8;}
+            else if (time > 30000) {accelerate = 7;}
+            else if (time > 25000) {accelerate = 4;}
+            else if (time > 20000) {accelerate = 3;}
+            else if (time > 10000) {accelerate = 2;}
+
+            int loopTime = (int)randomize_interval/accelerate; //ten czas może się zmieniać. szybkość pętli.
             time += loopTime;  //ustalanie nowego czasu
-            if (time > 100000) { //warunek zakończenia gry
+            int r_index = r.nextInt(greens.size());
+            //Log.d(TAG,"gameLoop time "+time+" side to burn "+greens.get(r_index).toString());
+            //StringBuilder s = new StringBuilder();
+            reds.add(greens.remove(r_index));
+            /*s.append("time "+time+" greens ");
+            for (Integer I : greens)
+                s.append(I.toString()+" ");
+            s.append("reds ");
+            for (Integer I : reds)
+                s.append(I.toString()+" ");
+            Log.d(TAG,s.toString());*/
+            if (time > gameTime) { //warunek zakończenia gry
                 handler.removeCallbacks(drawScene);
                 handler.removeCallbacks(gameLoop);
             }
@@ -184,7 +220,10 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         sp = getPreferences(MODE_PRIVATE);
         spe = sp.edit();
-        preferedDice = sp.getString("prefered_dice", null);
+        preferedDice = sp.getString("prefered_dice", "88:78:9C:0F:CA:8A");
+        r = new Random();
+        greens = new ArrayList<Integer>();
+        reds = new HashSet<Integer>();
     }
 
 
@@ -264,6 +303,11 @@ public class MainActivity extends Activity {
 
     public void startGame(View v) {
         time = 0;
+        reds.clear();
+        greens.clear();
+        int i = 1;
+        for (;i < 7;i++)
+            greens.add(new Integer(i));
         if (dicePlus != null) {
             Toast.makeText(getBaseContext(), "startGame", Toast.LENGTH_LONG).show();
             handler.postDelayed(gameLoop, 1000);
